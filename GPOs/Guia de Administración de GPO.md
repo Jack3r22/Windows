@@ -22,12 +22,12 @@ Date: August 12, 2023
 1. Nos dirigimos a Administrador del servidor > Herramientas > Administración de directivas de grupo 
 2. Hacemos clic derecho sobre el dominio y seleccionamos “Crear un GPO en este dominio y vincularlo aquí”
     
-    ![Untitled](GPOs/assets/Untitled.png)
+    ![Untitled](assets/Untitled.png)
     
 3. Pulsamos sobre la nueva GPO y agregamos los grupos a los que se les aplicara las directivas (zona inferior) 
 4. Sobre la nueva GPO hacemos  clic derecho y pulsamos en “Editar”
     
-    ![Untitled](GPOs/assets/Untitled%201.png)
+    ![Untitled](assets/Untitled%201.png)
     
 
 ---
