@@ -1,0 +1,409 @@
+{
+  "name": "Creación de usuarios AD",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Crear Usuario",
+        "formDescription": "Crear usuario en el AD Empresarial de forma automatizada",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Nombre",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Apellidos",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Departamento",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "RRHH"
+                  },
+                  {
+                    "option": "Informatica"
+                  },
+                  {
+                    "option": "Contabilidad"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email del empleado",
+              "fieldType": "email",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -176,
+        -176
+      ],
+      "id": "5dc8656c-9149-4ae0-89bb-06adec5ea6a0",
+      "name": "On form submission",
+      "webhookId": "75c2c043-5808-47bc-bd5f-405d46db9b2a"
+    },
+    {
+      "parameters": {
+        "command": "=powershell.exe -ExecutionPolicy Bypass -NoProfile -Command \"& 'C:\\tmp\\crearUsuario.ps1' -Nombre '{{ $json.Nombre }}' -Apellidos '{{ $json.Apellidos }}' -RutaOU 'OU=Usuarios,OU={{ $json.Departamento }},DC=empresa,DC=local' -NombreDepartamento '{{ $json.Departamento }}'\"",
+        "cwd": "C:\\tmp"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -176
+      ],
+      "id": "63692954-a7dc-4e2c-a8f7-da13a587af48",
+      "name": "Execute a command",
+      "credentials": {
+        "sshPassword": {
+          "id": "DfXxJfYM9TnncicE",
+          "name": "SSH Password account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.stdout).Estado }}",
+                    "rightValue": "Exito",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "517dd400-7a55-4dc4-b04a-20ab0b6aaf91"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8cca20f4-873f-4fa8-9fb2-bcbcc7c12424",
+                    "leftValue": "={{ JSON.parse($json.stdout).Mensaje }}",
+                    "rightValue": "ya existe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "fbceb824-e4c0-44f6-a53d-140183ac3e4f",
+                    "leftValue": "1",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        192,
+        -192
+      ],
+      "id": "be0c12f1-4700-41f0-bb49-5408a927b73c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<h3 style=\"color: #2c3e50;\">[Log AD] Aprovisionamiento automático completado</h3>\n<p>Se ha ejecutado un flujo de alta de usuario en Active Directory mediante el formulario de soporte (n8n).</p>\n\n<table border=\"1\" cellpadding=\"10\" cellspacing=\"0\" style=\"border-collapse: collapse; width: 100%; max-width: 600px; font-family: Arial, sans-serif; font-size: 14px;\">\n    <tr style=\"background-color: #f8f9fa;\">\n        <th colspan=\"2\" style=\"text-align: left; color: #333;\">Detalles de Ejecución (Audit Log)</th>\n    </tr>\n    <tr>\n        <td style=\"width: 35%; background-color: #fdfdfd;\"><b>Estado del Script:</b></td>\n        <td><strong style=\"color: #28a745;\">{{ JSON.parse($json.stdout).Estado }}</strong></td>\n    </tr>\n    <tr>\n        <td style=\"background-color: #fdfdfd;\"><b>Login Generado:</b></td>\n        <td><code style=\"background-color: #e9ecef; padding: 2px 4px; border-radius: 3px;\">{{ JSON.parse($json.stdout).Login }}</code></td>\n    </tr>\n    <tr>\n        <td style=\"background-color: #fdfdfd;\"><b>Nombre Completo:</b></td>\n        <td>{{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}</td>\n    </tr>\n    <tr>\n        <td style=\"background-color: #fdfdfd;\"><b>Ruta Destino (OU):</b></td>\n        <td><code style=\"background-color: #e9ecef; padding: 2px 4px; border-radius: 3px; font-size: 12px;\">{{ JSON.parse($json.stdout).RutaDestino }}</code></td>\n    </tr>\n    <tr>\n        <td style=\"background-color: #fdfdfd;\"><b>Salida del Servidor:</b></td>\n        <td><i>{{ JSON.parse($json.stdout).Mensaje }}</i></td>\n    </tr>\n</table>\n\n<p style=\"font-size: 12px; color: #6c757d; margin-top: 20px;\">\n    <i>Automatización Tier 1 - Sistema de Aprovisionamiento Centralizado.<br>\n    No responder a este correo generado automáticamente.</i>\n</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        -768
+      ],
+      "id": "9e62b44a-c555-4042-82eb-a92fca2aef9b",
+      "name": " Email TI - OK",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo23@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<h3>Alta de nuevo usuario completada</h3>\n<p>El usuario para el nuevo empleado ya está aprovisionado en el Active Directory.</p>\n<ul>\n    <li><b>Login Windows:</b> {{ JSON.parse($json.stdout).Login }}</li>\n    <li><b>Contraseña temporal:</b> {{ JSON.parse($json.stdout).PasswordTemporal }}</li>\n    <li><b>Ubicación (OU):</b> {{ JSON.parse($json.stdout).RutaDestino }}</li>\n</ul>\n<p><i>Nota de Sistemas: Por políticas de seguridad, el sistema obligará al empleado a cambiar esta contraseña en su primer inicio de sesión en el equipo.</i></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        432,
+        -576
+      ],
+      "id": "d386bf3e-7900-4701-8433-204d91376639",
+      "name": "email RRHH - OK",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "={{ $('On form submission').item.json['Email del empleado'] }}",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<div style=\"font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n    \n    <h2 style=\"color: #0056b3; text-align: center;\">¡Bienvenido a bordo, {{ $('On form submission').item.json.Nombre }}!</h2>\n    \n    <p style=\"color: #333; font-size: 16px; line-height: 1.5;\">\n        Nos alegra mucho que te incorpores al equipo. Desde el departamento de Sistemas ya hemos preparado tu cuenta corporativa para que tengas todo listo en tu primer día.\n    </p>\n\n    <div style=\"background-color: #f4f7f6; padding: 15px; border-left: 4px solid #0056b3; margin: 20px 0;\">\n        <p style=\"margin: 0 0 10px 0; font-size: 15px;\"><b>Tus credenciales de acceso a la red son:</b></p>\n        <ul style=\"margin: 0; padding-left: 20px; font-size: 15px;\">\n            <li><b>Usuario:</b> <code>{{ JSON.parse($json.stdout).Login }}</code></li>\n            <li><b>Contraseña temporal:</b> <code>{{ JSON.parse($json.stdout).PasswordTemporal }}</code></li>\n        </ul>\n    </div>\n\n    <p style=\"color: #333; font-size: 15px; line-height: 1.5;\">\n        <strong>⚠️ Importante:</strong> Por motivos de seguridad, esta contraseña es temporal. La primera vez que inicies sesión en tu equipo de trabajo, Windows te pedirá que crees una nueva contraseña personal que solo tú conocerás.\n    </p>\n\n    <p style=\"color: #555; font-size: 14px; margin-top: 30px;\">\n        Si tienes cualquier problema para acceder, no dudes en contactar con nosotros.<br><br>\n        Un saludo,<br>\n        <strong>El Departamento de Informática</strong>\n    </p>\n\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        432,
+        -384
+      ],
+      "id": "60cecc1f-dd17-464c-9236-e51e014f1ba0",
+      "name": "email USER - OK",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-left: 5px solid #ffc107;\">\n    <h3 style=\"color: #856404; margin-top: 0;\">Petición de Alta Detenida: Usuario Duplicado</h3>\n    <p>Hola equipo,</p>\n    <p>El sistema automático ha detectado que el usuario <b>{{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}</b> ya tiene una cuenta corporativa activa o previamente dada de baja en el sistema.</p>\n    <p>Para evitar conflictos de permisos o accesos, la automatización se ha detenido y <b>no se han generado nuevas credenciales</b>.</p>\n    <div style=\"background-color: #fff3cd; padding: 10px; margin-top: 15px; border-radius: 4px; font-size: 14px;\">\n        <strong>¿Qué hacer ahora?</strong><br>\n        Si se trata de un empleado que vuelve a la empresa, o de dos personas con el mismo nombre y apellido, por favor, abrid un ticket de soporte estándar para que Informática habilite la cuenta antigua o genere un formato de inicio de sesión alternativo.\n    </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        -240
+      ],
+      "id": "d50aed11-2bb5-40d3-89ce-960aa1f2c1ea",
+      "name": "email RRHH - DUPLICATE",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<div style=\"font-family: Consolas, monospace; max-width: 600px; padding: 15px; border: 1px solid #e0e0e0; background-color: #f8f9fa;\">\n    <h3 style=\"color: #6c757d; margin-top: 0;\">Log de Ejecución: Usuario Existente</h3>\n    <p>El script de PowerShell ha interceptado y denegado una petición de alta procedente del formulario web (n8n).</p>\n    <table style=\"width: 100%; font-size: 13px; text-align: left; border-collapse: collapse;\">\n        <tr>\n            <td style=\"padding: 5px; border-bottom: 1px solid #ddd;\"><b>Nombre:</b></td>\n            <td style=\"padding: 5px; border-bottom: 1px solid #ddd;\">{{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}</td>\n        </tr>\n        <tr>\n            <td style=\"padding: 5px; border-bottom: 1px solid #ddd;\"><b>Departamento:</b></td>\n            <td style=\"padding: 5px; border-bottom: 1px solid #ddd;\">{{ $('On form submission').item.json.Departamento }}</td>\n        </tr>\n        <tr>\n            <td style=\"padding: 5px;\"><b>Mensaje Servidor:</b></td>\n            <td style=\"padding: 5px; color: #dc3545;\">{{ JSON.parse($json.stdout).Mensaje }}</td>\n        </tr>\n    </table>\n    <p style=\"font-size: 11px; color: #999; margin-top: 15px;\">Se ha notificado automáticamente a RRHH. No se requiere acción inmediata por parte de TI.</p>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        -64
+      ],
+      "id": "f5df5aef-cf21-4063-96c6-5bb555340204",
+      "name": "email TI -  DUPLICATE",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-left: 5px solid #dc3545;\">\n    <h3 style=\"color: #dc3545; margin-top: 0;\">Error en el sistema de aprovisionamiento</h3>\n    <p>Hola equipo,</p>\n    <p>Hemos recibido los datos para el alta de <b>{{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}</b>, pero ha ocurrido un error de comunicación con nuestros servidores internos al intentar generar la cuenta.</p>\n    <p>El departamento de Informática ya ha recibido una alerta técnica detallada con el código de error y están revisando la infraestructura.</p>\n    <p style=\"font-weight: bold; color: #333;\">No es necesario que volváis a enviar el formulario.</p>\n    <p style=\"font-size: 14px;\">Os notificaremos directamente en cuanto la cuenta se haya creado de forma manual o el servicio automático se haya restablecido.</p>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        128
+      ],
+      "id": "bcedf0ee-a997-4b13-869c-71889adf77b3",
+      "name": "email RRHH - ERROR",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tucorreo@gmail.com",
+        "toEmail": "tucorreo@gmail.com",
+        "subject": "=Nuevas credenciales para {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }}",
+        "html": "=<div style=\"font-family: Consolas, monospace; max-width: 800px; padding: 15px; background-color: #2b2b2b; color: #f8f8f2; border-radius: 5px;\">\n    <h3 style=\"color: #ff5555; margin-top: 0;\">[ERROR] Caída en flujo de provisión n8n -> PowerShell</h3>\n    \n    <p><b>Origen:</b> Formulario de Alta Web</p>\n    <p><b>Datos inyectados:</b> {{ $('On form submission').item.json.Nombre }} {{ $('On form submission').item.json.Apellidos }} (OU: {{ $('On form submission').item.json.Departamento }})</p>\n    \n    <hr style=\"border-color: #444; margin: 15px 0;\">\n    \n    <p style=\"color: #f1fa8c;\"><b>Salida del nodo SSH (stdout / stderr / error obj):</b></p>\n    \n    <pre style=\"background-color: #1e1e1e; padding: 10px; border-left: 3px solid #ff5555; white-space: pre-wrap; word-wrap: break-word;\">\nSTDOUT:\n{{ $json.stdout || 'N/A' }}\n\nSTDERR / MENSAJE:\n{{ $json.stderr || $json.message || 'El túnel SSH o la ejecución falló silenciosamente.' }}\n    </pre>\n    \n    <p style=\"font-size: 12px; color: #8be9fd; margin-top: 15px;\">\n        Acciones sugeridas:<br>\n        1. Comprobar conectividad del servidor Windows destino (Puerto 22).<br>\n        2. Revisar visor de eventos OpenSSH en Windows Server.<br>\n        3. Validar permisos de ejecución en C:\\tmp\\crearUsuario.ps1.\n    </p>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        304
+      ],
+      "id": "0486709c-a3d6-4bf3-b8f1-d2962b06ba5b",
+      "name": "email TI - ERROR",
+      "webhookId": "3cb3b70a-aeb8-4094-88b2-ef6e0871a23b",
+      "credentials": {
+        "smtp": {
+          "id": "0QceYCILVZ7IvH8Z",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Execute a command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a command": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": " Email TI - OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "email RRHH - OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "email USER - OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "email RRHH - DUPLICATE",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "email TI -  DUPLICATE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "email RRHH - ERROR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "email TI - ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "17babf22-2caa-4427-925b-78705b4a791e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f35c81e2d04dcaf5012919f8d8ebd1a66c82e4a06938ab85a41fe9e865f51b4c"
+  },
+  "id": "qj6y9pXACPLZLxqX",
+  "tags": []
+}
