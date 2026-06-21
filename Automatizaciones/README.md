@@ -11,4 +11,4 @@ El objetivo de los proyectos y scripts contenidos en esta sección es reducir la
 ### 📂 [Alta automática de usuarios en Active Directory (n8n + PowerShell)](./alta-automatica-de-usuarios-en-ad/)
 
 
----
+
